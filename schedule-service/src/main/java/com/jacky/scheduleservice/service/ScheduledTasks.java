@@ -4,10 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jacky.scheduleservice.Client.RequestClient;
-import com.jacky.scheduleservice.model.Order;
-import com.jacky.scheduleservice.model.OrderPayload;
-import com.jacky.scheduleservice.model.Payload;
-import com.jacky.scheduleservice.model.TrackingItem;
+import com.jacky.scheduleservice.model.*;
 import com.jacky.scheduleservice.utils.JsonMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +34,11 @@ public class ScheduledTasks {
 
     private TrackingItem[] previousTrackingItemList;
 
+    @Value( "${message.keeping.expiretime}" )
+    private Integer producedMessageExpiretime;
+
+    private List<Message> producedMessage;
+
     @Scheduled(fixedDelay = 5 * 60 * 1000)
     public void performTask() throws JsonProcessingException {
         log.info("Starting execute schedule task - {}", new Date());
@@ -53,15 +55,19 @@ public class ScheduledTasks {
             if (orderList.isEmpty()){
                 continue;
             }
+            //remove duplicate
+            orderList = removeAlreadyDuplicateMessage(orderList);
+
             for (Order order: orderList){
-                log.info("{} name {} with price {}, copy to message: /w {} Hi! I want to buy \"{}\" for {} platinum (warframe.market) | jk-warframe-helper ",
+                log.info("{} name {} with price {}, copy to message: /w {} Hi! I want to {} \"{}\" for {} platinum (warframe.market) | jk-warframe-helper ",
                         order.getOrderType().toUpperCase(),
                         order.getUser().getIngameName(),
                         order.getPlatinum(),
                         order.getUser().getIngameName(),
+                        trackingItem.getOrderType().toLowerCase(),
                         trackingItem.getName(),
                         order.getPlatinum());
-                produceMessage();
+                produceMessage(trackingItem, order);
             }
         }
 
@@ -87,12 +93,7 @@ public class ScheduledTasks {
     private List<Order> getMarketNewOrder(TrackingItem trackingItem) throws JsonProcessingException {
         log.info("Get market new orders");
         RequestClient requestClient = new RequestClient();
-//        #ttps://api.warframe.market/v1/items/mirage_prime_systems/orders?include=item
         String requestApi = String.format("%s/%s/%s", warframeMarketItemApi, trackingItem.getUrlName(), "orders?include=item");
-
-        ExchangeStrategies strategies = ExchangeStrategies.builder()
-                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(16 * 1024 * 1024)) // 16 MB
-                .build();
 
         String response = requestClient.get(requestApi);
         JsonMapper jsonMapper = new JsonMapper();
@@ -103,7 +104,19 @@ public class ScheduledTasks {
         return orders.stream().filter(order -> order.isAvailable(trackingItem)).collect(Collectors.toList());
     }
 
-    private Boolean produceMessage(){
+    private List<Order> removeAlreadyDuplicateMessage(List<Order> orders){
+        producedMessage = producedMessage.stream().filter(message -> message.isExpired(producedMessageExpiretime)).toList();
+        return orders.stream().filter(order ->
+                producedMessage.stream().filter(producedMessage ->
+                        producedMessage.getOrderId().equals(order.getId())
+                ).toList().isEmpty()
+        ).toList();
+    }
+
+    private Boolean produceMessage(TrackingItem trackingItem, Order order){
+        log.info("Sending message for <{}>", trackingItem.getName());
+        Message message = new Message(trackingItem, order);
+        producedMessage.add(message);
         return null;
     }
 }
