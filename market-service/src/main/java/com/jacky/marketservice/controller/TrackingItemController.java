@@ -1,6 +1,7 @@
 package com.jacky.marketservice.controller;
 
 import com.jacky.marketservice.dto.request.TrackingItemRequestDto;
+import com.jacky.marketservice.dto.response.TrackingItemResponseDto;
 import com.jacky.marketservice.model.TrackingItem;
 import com.jacky.marketservice.service.TrackingItemService;
 import jakarta.validation.Valid;
@@ -17,7 +18,7 @@ public class TrackingItemController {
     private final TrackingItemService trackingItemService;
 
     @GetMapping
-    public List<TrackingItem> getAll(){
+    public List<TrackingItemResponseDto> getAll(){
         return trackingItemService.getAll();
     }
 

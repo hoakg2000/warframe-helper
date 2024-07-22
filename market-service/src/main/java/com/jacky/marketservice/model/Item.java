@@ -17,6 +17,7 @@ import lombok.experimental.Accessors;
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Table(name="item")
 public class Item {
     @Id
     @JsonProperty("id")

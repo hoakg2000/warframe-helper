@@ -1,6 +1,7 @@
 package com.jacky.marketservice.service;
 
 import com.jacky.marketservice.dto.request.TrackingItemRequestDto;
+import com.jacky.marketservice.dto.response.TrackingItemResponseDto;
 import com.jacky.marketservice.model.Item;
 import com.jacky.marketservice.model.TrackingItem;
 import com.jacky.marketservice.repository.ItemRepository;
@@ -10,8 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,8 +27,10 @@ public class TrackingItemService {
 
     @Value( "${warframe.market.tracking.limit}" )
     private Integer trackingLimit;
-    public List<TrackingItem> getAll() {
-        return trackingItemRepository.findAll();
+    public List<TrackingItemResponseDto> getAll() {
+        return trackingItemRepository.findAll().stream()
+                .map(TrackingItemResponseDto::new)
+                .collect(Collectors.toList());
     }
 
     public TrackingItem create(String itemId, TrackingItemRequestDto trackingItemRequestDto) {
@@ -59,7 +64,7 @@ public class TrackingItemService {
 
     public TrackingItem update(String itemId, TrackingItemRequestDto trackingItemRequestDto) {
         Optional<TrackingItem> optionalTrackingItem = trackingItemRepository.findById(itemId);
-        if (optionalTrackingItem.isPresent()){
+        if (optionalTrackingItem.isEmpty()){
             throw new RuntimeException(String.format("Item \"%s\" has already been track before", itemId));
         }
 

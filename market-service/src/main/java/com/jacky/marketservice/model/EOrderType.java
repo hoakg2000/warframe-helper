@@ -4,9 +4,8 @@ import lombok.Data;
 
 public enum EOrderType {
     SELL("sell"),
-
     BUY("buy"),
-    BUYANDSELL("buy&save");
+    BUYANDSELL("buyandsave");
 
     private final String displayName;
 

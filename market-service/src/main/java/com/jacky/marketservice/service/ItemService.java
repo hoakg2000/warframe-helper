@@ -54,7 +54,7 @@ public class ItemService {
     }
 
     public List<ItemResponseDto>  getItemByName(String name){
-        List<Item> itemList= itemRepository.findByItemNameLike( String.format("%%%s%%", name));
+        List<Item> itemList= itemRepository.findByItemNameIgnoreCaseContaining(name);
         return itemList.stream().map(ItemResponseDto::new).collect(Collectors.toList());
     }
 

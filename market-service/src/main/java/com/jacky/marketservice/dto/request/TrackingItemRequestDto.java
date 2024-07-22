@@ -1,5 +1,7 @@
 package com.jacky.marketservice.dto.request;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.jacky.marketservice.config.StatusEnumDeserializer;
 import com.jacky.marketservice.model.EOrderType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -14,6 +16,7 @@ import lombok.NoArgsConstructor;
 public class TrackingItemRequestDto {
 
     @NotNull
+    @JsonDeserialize(using = StatusEnumDeserializer.class)
     private EOrderType orderType;
 
     @Min(1)
