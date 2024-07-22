@@ -1,5 +1,7 @@
-package com.jacky.scheduleservice.model;
+package com.jacky.scheduleservice.event;
 
+import com.jacky.scheduleservice.model.Order;
+import com.jacky.scheduleservice.model.TrackingItem;
 import com.jacky.scheduleservice.utils.Common;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,7 +14,7 @@ import java.util.Date;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Message {
+public class OrderMessage {
     private String orderId;
     private String urlName;
     private String username;
@@ -21,7 +23,7 @@ public class Message {
     private String whisperMessage;
     private Date createdTime;
 
-    public Message(TrackingItem trackingItem, Order order){
+    public OrderMessage(TrackingItem trackingItem, Order order){
         setOrderId(order.getId());
         setUrlName(trackingItem.getUrlName());
         setUsername(order.getUser().getIngameName());
@@ -34,8 +36,8 @@ public class Message {
         setCreatedTime(new Date());
     }
 
-    public boolean equals(Message message) {
-        return this.orderId.equals(message.getOrderId());
+    public boolean isAlreadySendOrder(Order order) {
+        return this.orderId.equals(order.getId());
     }
 
     public boolean isExpired(Integer expiredTime) {

@@ -1,18 +1,16 @@
 package com.jacky.scheduleservice.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jacky.scheduleservice.Client.RequestClient;
+import com.jacky.scheduleservice.event.OrderMessage;
 import com.jacky.scheduleservice.model.*;
 import com.jacky.scheduleservice.utils.JsonMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.*;
@@ -25,6 +23,7 @@ public class ScheduledTasks {
 
     private KafkaService kafkaService;
     private final WebClient.Builder webClientBuilder;
+    private final KafkaTemplate<String, OrderMessage> kafkaTemplate;
 
     @Value( "${myservice.marketservice.api.trackingitem}" )
     private String marketServiceTrackingApi;
@@ -37,7 +36,7 @@ public class ScheduledTasks {
     @Value( "${message.keeping.expiretime}" )
     private Integer producedMessageExpiretime;
 
-    private List<Message> producedMessage;
+    private List<OrderMessage> producedMessageList = new ArrayList<>();
 
     @Scheduled(fixedDelay = 5 * 60 * 1000)
     public void performTask() throws JsonProcessingException {
@@ -105,18 +104,20 @@ public class ScheduledTasks {
     }
 
     private List<Order> removeAlreadyDuplicateMessage(List<Order> orders){
-        producedMessage = producedMessage.stream().filter(message -> message.isExpired(producedMessageExpiretime)).toList();
+        this.producedMessageList = this.producedMessageList.stream().filter(message -> message.isExpired(producedMessageExpiretime)).collect(Collectors.toList());
         return orders.stream().filter(order ->
-                producedMessage.stream().filter(producedMessage ->
-                        producedMessage.getOrderId().equals(order.getId())
+                this.producedMessageList.stream().filter(producedMessage ->
+                        producedMessage.isAlreadySendOrder(order)
                 ).toList().isEmpty()
-        ).toList();
+        ).collect(Collectors.toList());
     }
 
     private Boolean produceMessage(TrackingItem trackingItem, Order order){
         log.info("Sending message for <{}>", trackingItem.getName());
-        Message message = new Message(trackingItem, order);
-        producedMessage.add(message);
+        OrderMessage message = new OrderMessage(trackingItem, order);
+        this.producedMessageList.add(message);
+        kafkaTemplate.send("orderMessageTopic", message);
+        log.info("Sending message succesfully");
         return null;
     }
 }
